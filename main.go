@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-	"math"
 )
 
 type Node struct {
@@ -18,6 +18,45 @@ type Node struct {
 	f		int
 	parent	*Node
 	next	*Node
+}
+
+func create_goal(size int) [][]byte {
+	ideal_gread := make([][]byte, size)
+	for i := range ideal_gread {
+		ideal_gread[i] = make([]byte, size)
+	}
+	var number byte = 0
+	left := 0
+	right := size - 1
+	up := 0
+	down := size * size - 1
+	for i := 0; i < size * size - 1; i++ {
+		for i <= right {
+			ideal_gread[i / size][i % size] = number
+			i++
+			number++
+		}
+		up++
+		for i <= down {
+			ideal_gread[i / size][i % size] = number
+			i += size
+			number++
+		}
+		right--
+		for i >= left {
+			ideal_gread[i / size][i % size] = number
+			i--
+			number++
+		}
+		down -= size
+		for i <= up {
+			ideal_gread[i / size][i % size] = number
+			i++
+			number++
+		}
+		left++
+	}
+	return ideal_gread
 }
 
 func hamming_distance(grid [][]byte) int {
@@ -45,7 +84,7 @@ func manhattan_distance(grid [][]byte) int {
 				i_tmp := int((grid[i][j] - 1)) / size
 				j_tmp := int((grid[i][j] - 1)) % size
 				h += int(math.Abs(float64(i - i_tmp)) + math.Abs(float64(j - j_tmp)))
-			} 
+			}
 		}
 	}
 	return h
@@ -94,7 +133,7 @@ func initial(grid [][]byte, g int) *Node {
 	var new_node Node
 
 	new_node.grid = grid
-	new_node.g = g;
+	new_node.g = g
 	new_node.h = manhattan_distance(grid)
 	new_node.f = new_node.h + g
 	new_node.parent = nil
@@ -243,40 +282,16 @@ func create_4_child(grid_src [][]byte, g int, index int) *Node {
 	return initial(grid, g)
 }
 
-func exist_solution(grid [][]byte) bool {
-	size := len(grid)
-	inv := 0
-	buf := 0
-	for i := 1; i < size * size; i++ {
-		
-		buf = int(grid[(i - 1) / size][(i - 1) % size])
-		if buf == 0 {
-			inv += 1 + i / size
-		}
-		j := i + 1
-		for ; j < size * size; j++ {
-			if buf > int(grid[(j - 1) / size][(j - 1) % size]) && grid[(j - 1) / size][(j - 1) % size] != 0 {
-				inv++
-			}
-		}
+func to_string(grid [][]byte) string {
+	answer := ""
+	for _, v := range grid {
+		answer += string(v)
 	}
-	if inv % 2 == 0 {
-		return true
-	}
-	return false
+	return answer
 }
 
 func a_implement(karta [][]byte) *Node {
-	// if valid_start(karta) == false {
-	// 	return nil
-	// }
-
-	// var open_list *Node
-	var closed_list *Node
-
-	// open_list = open_list.insert(&start)
 	open_list := initial(karta, 0)
-	// closed_list = nil
 
 	// проверка на начальное состояние A + B = четное (есть решение)
 	//								   A + B = нечетное (решения нет)
@@ -284,20 +299,26 @@ func a_implement(karta [][]byte) *Node {
 	// номером идёт перед плиткой с меньшим номером (количество 
 	// инверсий перестановок). Число B — это номер строки, в которой
 	// находится пустое поле.
+	closed_map := make(map[string]bool)
 	for open_list != nil {
 		//find_min_f
+		// fmt.Println(open_list)
 		process := open_list
 		if process.h == 0 {
 			return process
 		}
 		// open_list = open_list.remove(process)
 		open_list = open_list.next
-		closed_list = closed_list.insert(process)
-
+		// closed_list = closed_list.insert(process)
+		closed_map[to_string(process.grid)] = true
+		
 		for i := 0; i < 4; i++ {
 			if node := create_4_child(process.grid, process.g + 1, i); node != nil {
 				node.parent = process
-				if closed_list.find_repeat(node) != nil {
+				// if closed_list.find_repeat(node) != nil {
+				// 	continue
+				// }
+				if _, ok := closed_map[to_string(node.grid)]; ok == true {
 					continue
 				}
 				if open_list.find_repeat(node) == nil {
@@ -318,10 +339,62 @@ func a_implement(karta [][]byte) *Node {
 
 
 ////////////////////////////////////////////////
+
+func exist_solution(grid [][]byte) bool {
+	size := len(grid)
+	inv := 0
+	// for i := 1; i < size * size; i++ {
+		
+	// 	buf = int(grid[(i - 1) / size][(i - 1) % size])
+	// 	if buf == 0 {
+	// 		inv += 1 + i / size
+	// 		continue
+	// 	}
+	// 	j := i + 1
+	// 	for ; j < size * size; j++ {
+	// 		if buf > int(grid[(j - 1) / size][(j - 1) % size]) {
+	// 			inv++
+	// 		}
+	// 	}
+	// }
+	zero := 0
+	for i := 0; i < size * size; i++ {
+		if grid[i / size][i % size] == 0 {
+			// inv += 1 + i / size
+			zero = ((size - 1) - i / size) + ((size - 1) - i % size)
+			//zero = i + 1
+		} else {
+			for j := 0; j < i; j++ {
+				if grid[j / size][j % size] > grid[i / size][i % size] {
+					// fmt.Println(grid[j / size][j % size], grid[i / size][i % size])
+					inv++
+				}
+			}
+		}
+	}
+	//if size % 2 == 1 {
+	//	// fmt.Println("aaa", zero, inv)
+	//	return inv % 2 == 1
+	//} else if (zero / size) % 2 == 0 {
+	//	return inv % 2 == 1
+	//}
+	if inv % 2 == 0 && zero % 2 == 0 {
+		return true
+	} else if inv % 2 == 1 && zero % 2 == 1 {
+		return true
+	}
+	
+	return false
+	//return inv % 2 == 0
+}
+
 func create_map(data []string) ([][]byte, error) {
 	map_size, err := strconv.Atoi(data[0])
-	if err != nil || map_size > 16 {
+	if err != nil {
 		return nil, err
+	}
+	if map_size > 16 || map_size < 3 {
+		return nil, errors.New(fmt.Sprintf("Bad map size"))
 	}
 	karta := make([][]byte, 0)
 	cnt := 1
@@ -335,7 +408,9 @@ func create_map(data []string) ([][]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			//проверка buf на отрицательное и чтобы числа были нужные
+			if buf < 0 || buf > map_size * map_size - 1 {
+				return nil, errors.New(fmt.Sprintf("Bad character in map"))
+			}
 			tmp[j] = byte(buf)
 			cnt++
 		}
@@ -349,12 +424,26 @@ func skip_comment(for_valid_map []byte) []byte {
 
 	for i := 0; i < len(for_valid_map); i++ {
 		if for_valid_map[i] == '#' {
-			for ; for_valid_map[i] != '\n'; i++{
+			for ; i < len(for_valid_map) && for_valid_map[i] != '\n'; i++{
 			}
+		} else {
+			answer = append(answer, byte(for_valid_map[i]))
 		}
-		answer = append(answer, byte(for_valid_map[i]))
 	}
 	return answer
+}
+
+func valid_digits(grid [][]byte) bool {
+	size := len(grid)
+	for i := 0; i < size * size - 1; i++ {
+		tmp := grid[i / size][i % size]
+		for j := i + 1; j < size * size; j++ {
+			if tmp == grid[j / size][j % size] {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func parse(fname string) ([][]byte, error) {
@@ -379,14 +468,19 @@ func parse(fname string) ([][]byte, error) {
 		return nil, errors.New(fmt.Sprintf("Empty file"))
 	}
 	data := strings.Fields(string(skip_comment(map_str)))
-
+	if len(data) == 0 {
+		return nil, errors.New(fmt.Sprintf("No map"))
+	}
 	karta, err := create_map(data)
 	if err != nil {
 		return nil, err
 	}
-	if exist_solution(karta) == false {
-		return nil, errors.New(fmt.Sprintf("Solution not exist"))
+	if valid_digits(karta) == false {
+		return nil, errors.New(fmt.Sprintf("Repeat digits in map"))
 	}
+	//if !exist_solution(karta){
+	//	return nil, errors.New(fmt.Sprintf("Solution not exist"))
+	//}
 	return karta, nil
 }
 
@@ -415,7 +509,7 @@ func main() {
 					answer = answer.parent
 				}
 			} else {
-				fmt.Println("Solution not exist")
+				fmt.Println("Solution not found")
 			}
 		} else {
 			fmt.Println(err)
@@ -423,4 +517,5 @@ func main() {
 	} else {
 		fmt.Println("Error number of args")
 	}
+	fmt.Println(create_goal(3))
 }
