@@ -15,12 +15,12 @@ func create_map(data []string) ([][]byte, error) {
 		return nil, err
 	}
 	if map_size > 16 || map_size < 3 {
-		return nil, errors.New(fmt.Sprintf("Bad map size"))
+		return nil, errors.New(fmt.Sprintf("Bad map size\n"))
 	}
 	karta := make([][]byte, 0)
 	cnt := 1
 	if map_size * map_size != len(data) - 1 {
-		return nil, errors.New(fmt.Sprintf("Wrong number of stroke"))
+		return nil, errors.New(fmt.Sprintf("Wrong number of stroke\n"))
 	}
 	for i := 0; i < map_size; i++ {
 		tmp := make([]byte, map_size)
@@ -30,7 +30,7 @@ func create_map(data []string) ([][]byte, error) {
 				return nil, err
 			}
 			if buf < 0 || buf > map_size * map_size - 1 {
-				return nil, errors.New(fmt.Sprintf("Bad character in map"))
+				return nil, errors.New(fmt.Sprintf("Bad character in map\n"))
 			}
 			tmp[j] = byte(buf)
 			cnt++
@@ -86,22 +86,24 @@ func parse(fname string) ([][]byte, error) {
 		}
 	}
 	if (len(map_str) == 0) {
-		return nil, errors.New(fmt.Sprintf("Empty file"))
+		return nil, errors.New(fmt.Sprintf("Empty file\n"))
 	}
 	data := strings.Fields(string(skip_comment(map_str)))
 	if len(data) == 0 {
-		return nil, errors.New(fmt.Sprintf("No map"))
+		return nil, errors.New(fmt.Sprintf("No map\n"))
 	}
 	karta, err := create_map(data)
 	if err != nil {
 		return nil, err
 	}
 	if valid_digits(karta) == false {
-		return nil, errors.New(fmt.Sprintf("Repeat digits in map"))
+		return nil, errors.New(fmt.Sprintf("Repeat digits in map\n"))
 	}
 	ideal := create_goal(len(karta))
 	if exist_solution(karta, ideal) == false {
-		return nil, errors.New(fmt.Sprintf("Solution not exist"))
+		return nil, errors.New(fmt.Sprintf("Solution not exist\n"))
+	} else {
+		fmt.Printf(Green, "Solution exist\n")
 	}
 	return karta, nil
 }

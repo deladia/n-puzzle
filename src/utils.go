@@ -1,5 +1,26 @@
 package main
 
+import "fmt"
+
+var (
+	Red     = "\033[1;31m%s\033[0m"
+	Green   = "\033[1;32m%s\033[0m"
+	Yellow  = "\033[1;33m%s\033[0m"
+	Purple  = "\033[1;34m%s\033[0m"
+	White   = "\033[1;37m%s\033[0m"
+  )
+
+func (answer *Node) print_list() {
+	for answer != nil {
+		fmt.Println("g =", answer.g, "h =", answer.h, "f =", answer.f)
+		for _, v := range answer.grid {
+			fmt.Println(v)
+		}
+		fmt.Println()
+		answer = answer.parent
+	}
+}
+
 func find_index(grid [][]byte, sym byte) (int, int) {
 	for i, v := range grid {
 		for j, v2 := range v {
@@ -23,6 +44,8 @@ func initial(grid [][]byte, ideal [][]byte, hueristic *string, g int) *Node {
 		new_node.h = manhattan_distance(grid, ideal)
 	case "conflict":
 		new_node.h = linear_conflict_manhattan_distance(grid, ideal)
+	default:
+		new_node.h = 0
 	}
 	new_node.f = new_node.h + g
 	new_node.parent = nil
@@ -36,6 +59,26 @@ func to_string(grid [][]byte) string {
 		answer += string(v)
 	}
 	return answer
+}
+
+func (n *Node) len_list() int {
+	tmp := n
+	cnt := 0
+	for tmp != nil {
+		cnt++
+		tmp = tmp.next
+	}
+	return cnt
+}
+
+func (n *Node) len_answer() int {
+	tmp := n
+	cnt := 0
+	for tmp != nil {
+		cnt++
+		tmp = tmp.parent
+	}
+	return cnt - 1
 }
 
 func (n *Node) insert(new *Node) *Node {
@@ -75,7 +118,7 @@ func (list *Node) find_repeat(to_find *Node) *Node {
 
 	tmp_list = list
 	for tmp_list != nil {
-		if equal_grid(to_find, tmp_list) {
+		if equal_grid(to_find.grid, tmp_list.grid) {
 			return tmp_list
 		}
 		tmp_list = tmp_list.next
@@ -83,10 +126,10 @@ func (list *Node) find_repeat(to_find *Node) *Node {
 	return nil
 }
 
-func equal_grid(node1 *Node, node2 *Node) bool {
-	for i, v := range node1.grid {
+func equal_grid(node1 [][]byte, node2 [][]byte) bool {
+	for i, v := range node1 {
 		for j, vv := range v {
-			if vv != node2.grid[i][j] {
+			if vv != node2[i][j] {
 				return false
 			}
 		}
